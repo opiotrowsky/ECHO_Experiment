@@ -1,0 +1,6 @@
+seed,condition,m1_coverage,m2_latency_cycles,m3_cpu_ms_per_tick,difficulty_proxy
+0,baseline,0.0,0.0,0.0015949001535773277,510.0
+1,baseline,0.0,1.0,0.0014664999907836318,465.0
+2,baseline,0.0,0.0,0.0016226002480834723,430.0
+3,baseline,0.0,0.0,0.001536099356599152,479.0
+4,baseline,0.0,0.0,0.0016051001148298383,410.0
