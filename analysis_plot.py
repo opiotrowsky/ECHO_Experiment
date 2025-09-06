@@ -27,7 +27,7 @@ def parse_args():
     ap.add_argument(
         '--metrics',
         type=str,
-        default='m1_coverage,m2_latency_cycles,m3_missed_actions_rate,m4_cpu_ms_per_tick,difficulty_proxy',
+        default='m1_coverage,m2_unlearned_usage,m3_latency_cycles,m4_missed_actions_rate,m5_cpu_ms_per_tick,difficulty_proxy',
         help='Lista metryk rozdzielona przecinkami',
     )
     return ap.parse_args()

@@ -24,8 +24,8 @@ from player import ScriptedPlayer
 from agent import BTGatedAgent
 
 
-def run_single_experiment(seed: int = 0, light_ticks: int = 100, dark_ticks: int = 100,
-cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
+def run_single_experiment(seed: int = 0, light_ticks: int = 10, dark_ticks: int = 10,
+cycles: int = 20, condition: str = 'memory') -> Dict[str, float]:
     env = GridEnv(seed=seed)
     player = ScriptedPlayer(rng_seed=seed + 13)
     agent = BTGatedAgent()
@@ -38,6 +38,9 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
     # Do liczenia latencji: kiedy akcję po raz pierwszy zobaczono i kiedy po raz pierwszy użył jej NPC
     first_seen_cycle: Dict[str, int] = {}
     first_used_cycle: Dict[str, int] = {}
+    
+    # Do liczenia użycia niewyuczonych podczas LIGHT[c] akcji w cyklu c+1
+    unlearned_rate_per_cycle: List[float] = []
     
     observed_light: Set[str] = set()
     light_history: deque[set[str]] = deque(maxlen=1)
@@ -111,6 +114,9 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
             used = {a for a in used_in_cycle if a in LEARNABLE}
             if ref:
                 coverage_per_cycle.append(len(used & ref) / len(ref))
+            if used:
+                unlearned_rate_c = len(used - ref) / len(used)
+                unlearned_rate_per_cycle.append(unlearned_rate_c)
             
             light_history.append(observed_light)  # dodanie observed_light z bieżącego LIGHT[c] do historii obserwacji
     
@@ -182,27 +188,32 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
             used = {a for a in used_in_cycle if a in LEARNABLE}
             if ref:
                 coverage_per_cycle.append(len(used & ref) / len(ref))
+            if used:
+                unlearned_rate_c = len(used - ref) / len(used)
+                unlearned_rate_per_cycle.append(unlearned_rate_c)
             
             light_history.append(observed_light)  # dodanie observed_light z bieżącego LIGHT[c] do historii obserwacji
     
     # ---------------- Agregacja metryk ----------------
     m1_coverage = sum(coverage_per_cycle) / len(coverage_per_cycle) if coverage_per_cycle else float('nan')
+    m2_unlearned_usage = (sum(unlearned_rate_per_cycle)) / len(unlearned_rate_per_cycle) if unlearned_rate_per_cycle else float('nan')
 
     # Latencja liczona tylko dla akcji, które kiedykolwiek zobaczono
     seen_f = set(first_seen_cycle)
     used_f = set(first_used_cycle)
     latencies = [first_used_cycle[a] - first_seen_cycle[a] for a in (seen_f & used_f)]
-    m2_latency = (sum(latencies) / len(latencies)) if latencies else float('nan')
-    m3_missed_rate = (len(seen_f - used_f) / len(seen_f)) if seen_f else float('nan')
+    m3_latency = (sum(latencies) / len(latencies)) if latencies else float('nan')
+    m4_missed_rate = (len(seen_f - used_f) / len(seen_f)) if seen_f else float('nan')
 
-    m4_cpu_ms = 1000.0 * (sum(cpu_times) / len(cpu_times)) if cpu_times else 0.0
+    m5_cpu_ms = 1000.0 * (sum(cpu_times) / len(cpu_times)) if cpu_times else 0.0
     difficulty = float(damage_to_player_total)
 
     return {
         'm1_coverage': m1_coverage,
-        'm2_latency_cycles': m2_latency,
-        'm3_missed_actions_rate': m3_missed_rate,
-        'm4_cpu_ms_per_tick': m4_cpu_ms,
+        'm2_unlearned_usage': m2_unlearned_usage,
+        'm3_latency_cycles': m3_latency,
+        'm4_missed_actions_rate': m4_missed_rate,
+        'm5_cpu_ms_per_tick': m5_cpu_ms,
         'difficulty_proxy': difficulty,
     }
 
