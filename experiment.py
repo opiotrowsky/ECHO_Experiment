@@ -1,12 +1,13 @@
 """
 Warunki:
-- baseline: brak pamięci/gatingu (NPC ma pełne ACTIONS w DARK)
+- baseline: brak pamięci/gatingu (NPC ma pełne ACTIONS od początku)
 - memory:  gating wg akcji gracza z poprzedniego cyklu LIGHT (domyślnie K=1)
 
 Metryki (per epizod):
-- m1_coverage:   średni odsetek akcji z LIGHT[t], których NPC użył w DARK[t]
-- m2_latency_cycles: średnia liczba cykli do pierwszego użycia akcji po jej „wprowadzeniu” przez gracza
-- m3_cpu_ms_per_tick: średni koszt CPU (ms) na tick (pomiar perf_counter)
+- m1_coverage:   średni odsetek akcji z LIGHT[c-1], których NPC użył w cyklu c
+- m2_latency_cycles: średnia liczba cykli od obserwacji do pierwszego użycia (tylko dla akcji, które zaszły)
+- m3_missed_actions_rate: odsetek akcji, które NPC zobaczył, ale nigdy ich nie użył
+- m4_cpu_ms_per_tick: średni koszt CPU (ms) na tick (pomiar perf_counter)
 - difficulty_proxy:  łączna utrata HP gracza (suma obrażeń zadanych przez NPC)
 
 Uwaga: interfejs pozostaje zgodny z analysis_plot.py oraz run_experiment.py.
@@ -45,7 +46,7 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
         for c in range(1, cycles + 1):
             allowed = set(MOVES_ONLY)  # NPC zaczyna tylko z przemieszczaniem się
             observed_prev = light_history[-1] if len(light_history) > 0 else set()
-            learned_prev = {a for a in observed_light if a in LEARNABLE}
+            learned_prev = {a for a in observed_prev if a in LEARNABLE}
             allowed = set(MOVES_ONLY) | learned_prev  # ew. dodanie ruchów dla NPC z LEARNABLE
             observed_light: Set[str] = set()
             
@@ -60,6 +61,9 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
                 # NPC observation:
                 env.step_player(action_p)
                 observed_light.add(action_p)
+                if action_p in LEARNABLE and action_p not in first_seen_cycle:
+                    first_seen_cycle[action_p] = c  # pierwszy raz „widziana” w tym cyklu
+                
                 if action_n:
                     prev_player_hp = env.player_hp
                     env.step_npc(action_n)
@@ -74,14 +78,8 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
                 
                     # latencja: jeśli akcję już „widziano” i jeszcze nie zarejestrowano użycia → zapisz
                 if action_n in LEARNABLE:
-                    seen_c = first_seen_cycle.get(action_n, None)
-                    if seen_c is not None and action_n not in first_used_cycle:
+                    if action_n in first_seen_cycle and action_n not in first_used_cycle:
                         first_used_cycle[action_n] = c  # pierwszy raz użyta w tym cyklu
-
-            
-            for a in observed_light:
-                if a in LEARNABLE and a not in first_seen_cycle:
-                    first_seen_cycle[a] = c
             
             # DARK Phase
             for t in range(dark_ticks):
@@ -101,8 +99,7 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
 
                     # latencja: jeśli akcję już „widziano” i jeszcze nie zarejestrowano użycia → zapisz
                 if action_n in LEARNABLE:
-                    seen_c = first_seen_cycle.get(action_n, None)
-                    if seen_c is not None and action_n not in first_used_cycle:
+                    if action_n in first_seen_cycle and action_n not in first_used_cycle:
                         first_used_cycle[action_n] = c  # pierwszy raz użyta w tym cyklu
 
                 env.tick_cooldowns()
@@ -112,9 +109,8 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
             # Pokrycie dla cyklu c: ile z akcji z LIGHT[c-1] zostało użytych w cyklu c
             ref = {a for a in observed_prev if a in LEARNABLE}
             used = {a for a in used_in_cycle if a in LEARNABLE}
-            denom = len(ref) if ref else 1
-            coverage = len(used & ref) / denom
-            coverage_per_cycle.append(coverage)
+            if ref:
+                coverage_per_cycle.append(len(used & ref) / len(ref))
             
             light_history.append(observed_light)  # dodanie observed_light z bieżącego LIGHT[c] do historii obserwacji
     
@@ -136,6 +132,9 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
                 # NPC observation:
                 env.step_player(action_p)
                 observed_light.add(action_p)
+                if action_p in LEARNABLE and action_p not in first_seen_cycle:
+                    first_seen_cycle[action_p] = c  # pierwszy raz „widziana” w tym cyklu
+                
                 if action_n:
                     prev_player_hp = env.player_hp
                     env.step_npc(action_n)
@@ -150,14 +149,8 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
                 
                     # latencja: jeśli akcję już „widziano” i jeszcze nie zarejestrowano użycia → zapisz
                 if action_n in LEARNABLE:
-                    seen_c = first_seen_cycle.get(action_n, None)
-                    if seen_c is not None and action_n not in first_used_cycle:
-                        first_used_cycle[action_n] = c  # pierwszy raz użyta w tym cyklu
-
-            
-            for a in observed_light:
-                if a in LEARNABLE and a not in first_seen_cycle:
-                    first_seen_cycle[a] = c
+                    if action_n in first_seen_cycle and action_n not in first_used_cycle:
+                        first_used_cycle[action_n] = c
             
             # DARK Phase
             for t in range(dark_ticks):
@@ -177,8 +170,7 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
 
                     # latencja: jeśli akcję już „widziano” i jeszcze nie zarejestrowano użycia → zapisz
                 if action_n in LEARNABLE:
-                    seen_c = first_seen_cycle.get(action_n, None)
-                    if seen_c is not None and action_n not in first_used_cycle:
+                    if action_n in first_seen_cycle and action_n not in first_used_cycle:
                         first_used_cycle[action_n] = c  # pierwszy raz użyta w tym cyklu
 
                 env.tick_cooldowns()
@@ -188,31 +180,29 @@ cycles: int = 5, condition: str = 'memory') -> Dict[str, float]:
             # Pokrycie dla cyklu c: ile z akcji z LIGHT[c-1] zostało użytych w cyklu c
             ref = {a for a in observed_prev if a in LEARNABLE}
             used = {a for a in used_in_cycle if a in LEARNABLE}
-            denom = len(ref) if ref else 1
-            coverage = len(used & ref) / denom
-            coverage_per_cycle.append(coverage)
+            if ref:
+                coverage_per_cycle.append(len(used & ref) / len(ref))
+            
+            light_history.append(observed_light)  # dodanie observed_light z bieżącego LIGHT[c] do historii obserwacji
     
     # ---------------- Agregacja metryk ----------------
-    m1_coverage = sum(coverage_per_cycle) / len(coverage_per_cycle)
+    m1_coverage = sum(coverage_per_cycle) / len(coverage_per_cycle) if coverage_per_cycle else float('nan')
 
     # Latencja liczona tylko dla akcji, które kiedykolwiek zobaczono
-    latencies = []
-    for a, seen_c in first_seen_cycle.items():
-        used_c = first_used_cycle.get(a, None)
-        if used_c is not None:
-            latencies.append(max(0, used_c - seen_c))  # ile cykli po „zobaczeniu”
-        else:
-            # jeśli nigdy nie użyto, potraktuj jako „nie użyto w horyzoncie” → cycles - seen_c + 1
-            latencies.append(cycles - seen_c + 1)
+    seen_f = set(first_seen_cycle)
+    used_f = set(first_used_cycle)
+    latencies = [first_used_cycle[a] - first_seen_cycle[a] for a in (seen_f & used_f)]
     m2_latency = (sum(latencies) / len(latencies)) if latencies else float('nan')
+    m3_missed_rate = (len(seen_f - used_f) / len(seen_f)) if seen_f else float('nan')
 
-    m3_cpu_ms = 1000.0 * (sum(cpu_times) / len(cpu_times)) if cpu_times else 0.0
+    m4_cpu_ms = 1000.0 * (sum(cpu_times) / len(cpu_times)) if cpu_times else 0.0
     difficulty = float(damage_to_player_total)
 
     return {
         'm1_coverage': m1_coverage,
         'm2_latency_cycles': m2_latency,
-        'm3_cpu_ms_per_tick': m3_cpu_ms,
+        'm3_missed_actions_rate': m3_missed_rate,
+        'm4_cpu_ms_per_tick': m4_cpu_ms,
         'difficulty_proxy': difficulty,
     }
 

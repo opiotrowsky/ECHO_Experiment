@@ -107,7 +107,6 @@ speed: float, record_path: Optional[str], seed: int):
         observed_light: Set[str] = set()
         for c in range(1, cycles+1):
             allowed = set(MOVES_ONLY)  # NPC zaczyna tylko z przemieszczaniem się
-            # last_light = light_history[-1] if len(light_history) > 0 else set()
             learned_prev = {a for a in observed_light if a in LEARNABLE}
             allowed = set(MOVES_ONLY) | learned_prev  # ew. dodanie ruchów dla NPC z LEARNABLE
             observed_light: Set[str] = set()

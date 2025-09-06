@@ -8,7 +8,7 @@ Funkcje:
 - Zapisuje podsumowanie (średnia, odchylenie std, min, max) do data/summary_metrics.csv
 
 Użycie:
-  python analysis_plot.py --outdir data --metrics m1_coverage,m2_latency_cycles,m3_cpu_ms_per_tick,difficulty_proxy
+  python analysis_plot.py --outdir data --metrics m1_coverage,m2_latency_cycles,m3_missed_actions_rate,m4_cpu_ms_per_tick,difficulty_proxy
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ def parse_args():
     ap.add_argument(
         '--metrics',
         type=str,
-        default='m1_coverage,m2_latency_cycles,m3_cpu_ms_per_tick,difficulty_proxy',
+        default='m1_coverage,m2_latency_cycles,m3_missed_actions_rate,m4_cpu_ms_per_tick,difficulty_proxy',
         help='Lista metryk rozdzielona przecinkami',
     )
     return ap.parse_args()

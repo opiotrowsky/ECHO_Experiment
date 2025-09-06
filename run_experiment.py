@@ -25,7 +25,7 @@ DEFAULT_CONDITIONS = ['memory', 'baseline']
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description='Batch runner for ECHO-like experiment')
     p.add_argument('--outdir', type=str, default='data', help='Katalog wyjściowy na CSV/figury')
-    p.add_argument('--seeds', type=str, default='0,1,2,3,4', help='Lista seedów rozdzielona przecinkami')
+    p.add_argument('--seeds', type=str, default='0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49', help='Lista seedów rozdzielona przecinkami')
     p.add_argument('--cycles', type=int, default=5, help='Liczba cykli LIGHT/DARK w epizodzie')
     p.add_argument('--light_ticks', type=int, default=100, help='Długość fazy LIGHT (ticki)')
     p.add_argument('--dark_ticks', type=int, default=100, help='Długość fazy DARK (ticki)')
@@ -64,9 +64,10 @@ def main() -> None:
 
         m1 = avg('m1_coverage')
         m2 = avg('m2_latency_cycles')
-        m3 = avg('m3_cpu_ms_per_tick')
+        m3 = avg('m3_missed_actions_rate')
+        m4 = avg('m4_cpu_ms_per_tick')
         diff = avg('difficulty_proxy')
-        print(f'[{cond}] m1_coverage={m1:.3f}, m2_latency={m2:.3f} cycles, m3_cpu={m3:.4f} ms/tick, difficulty={diff:.1f}')
+        print(f'[{cond}] m1_coverage={m1:.3f}, m2_latency={m2:.3f} cycles, m3_miss_rate={m3:.3f} m4_cpu={m4:.4f} ms/tick, difficulty={diff:.1f}')
 
     # Dodatkowo wydrukuj „sample” pierwszego wiersza memory/baseline (gdy istnieją)
     for cond in ['memory', 'baseline']:
