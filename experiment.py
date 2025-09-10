@@ -5,9 +5,10 @@ Warunki:
 
 Metryki (per epizod):
 - m1_coverage:   średni odsetek akcji z LIGHT[c-1], których NPC użył w cyklu c
-- m2_latency_cycles: średnia liczba cykli od obserwacji do pierwszego użycia (tylko dla akcji, które zaszły)
-- m3_missed_actions_rate: odsetek akcji, które NPC zobaczył, ale nigdy ich nie użył
-- m4_cpu_ms_per_tick: średni koszt CPU (ms) na tick (pomiar perf_counter)
+- m2_unlearned_usage: średni odsetek użytych akcji w cyklu c, które NPC nie widział w LIGHT[c-1]
+- m3_latency_cycles: średnia liczba cykli od obserwacji do pierwszego użycia (tylko dla akcji, które zaszły)
+- m4_missed_actions_rate: odsetek akcji, które NPC zobaczył, ale nigdy ich nie użył
+- m5_cpu_ms_per_tick: średni koszt CPU (ms) na tick (pomiar perf_counter)
 - difficulty_proxy:  łączna utrata HP gracza (suma obrażeń zadanych przez NPC)
 
 Uwaga: interfejs pozostaje zgodny z analysis_plot.py oraz run_experiment.py.
